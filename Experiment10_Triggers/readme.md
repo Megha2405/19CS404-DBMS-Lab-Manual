@@ -33,7 +33,38 @@ END;
 **Expected Output:**
 - A new entry is added to the `employee_log` table each time a new record is inserted into the `employees` table.
 
----
+### PL/SQL Query:
+```
+CREATE TABLE employees (
+    emp_id NUMBER,
+    emp_name VARCHAR2(50),
+    designation VARCHAR2(50)
+);
+
+CREATE TABLE employee_log (
+    log_id NUMBER GENERATED ALWAYS AS IDENTITY,
+    emp_id NUMBER,
+    emp_name VARCHAR2(50),
+    designation VARCHAR2(50),
+    log_date DATE
+);
+
+CREATE OR REPLACE TRIGGER trg_employee_insert
+AFTER INSERT ON employees
+FOR EACH ROW
+BEGIN
+    INSERT INTO employee_log (emp_id, emp_name, designation, log_date)
+    VALUES (:NEW.emp_id, :NEW.emp_name, :NEW.designation, SYSDATE);
+END;
+/
+
+INSERT INTO employees VALUES (1, 'John', 'Manager');
+INSERT INTO employees VALUES (2, 'Alice', 'Developer');
+SELECT * FROM employee_log;
+```
+### output
+<img width="1000" height="252" alt="image" src="https://github.com/user-attachments/assets/8fd32b49-1a17-47d0-af10-f8ec2aa257f3" />
+
 
 ## 2. Write a trigger to prevent deletion of records from a sensitive table.
 **Steps:**
@@ -43,7 +74,28 @@ END;
 **Expected Output:**
 - If an attempt is made to delete a record from `sensitive_data`, an error message is raised, e.g., `ERROR: Deletion not allowed on this table.`
 
----
+### PL/SQL Query
+```
+CREATE TABLE sensitive_data (
+    id NUMBER,
+    info VARCHAR2(100)
+);
+
+INSERT INTO sensitive_data VALUES (1, 'Confidential Record');
+
+CREATE OR REPLACE TRIGGER trg_prevent_delete
+BEFORE DELETE ON sensitive_data
+FOR EACH ROW
+BEGIN
+    RAISE_APPLICATION_ERROR(-20001, 'ERROR: Deletion not allowed on this table.');
+END;
+/
+
+DELETE FROM sensitive_data WHERE id = 1;
+```
+### output
+
+<img width="1178" height="210" alt="image" src="https://github.com/user-attachments/assets/f1b9dd05-9695-4b39-859c-8465154edfa6" />
 
 ## 3. Write a trigger to automatically update a `last_modified` timestamp.
 **Steps:**
@@ -53,7 +105,32 @@ END;
 **Expected Output:**
 - The `last_modified` column in the `products` table is updated automatically to the current date and time when any record is updated.
 
----
+### PL/SQL Query:
+
+```
+CREATE TABLE products (
+    product_id NUMBER,
+    product_name VARCHAR2(50),
+    price NUMBER,
+    last_modified DATE
+);
+
+INSERT INTO products VALUES (1, 'Laptop', 55000, SYSDATE);
+
+CREATE OR REPLACE TRIGGER trg_update_timestamp
+BEFORE UPDATE ON products
+FOR EACH ROW
+BEGIN
+    :NEW.last_modified := SYSDATE;
+END;
+/
+
+UPDATE products SET price = 60000 WHERE product_id = 1;
+SELECT product_id, product_name, price, last_modified FROM products;
+```
+### output
+<img width="864" height="280" alt="image" src="https://github.com/user-attachments/assets/7391329e-2e76-45f7-82b8-7d961687b45b" />
+
 
 ## 4. Write a trigger to keep track of the number of updates made to a table.
 **Steps:**
@@ -63,7 +140,35 @@ END;
 **Expected Output:**
 - The `audit_log` table will maintain a count of how many updates have been made to the `customer_orders` table.
 
----
+### PL/SQL Query:
+```
+CREATE TABLE customer_orders (
+    order_id NUMBER,
+    customer_name VARCHAR2(50),
+    amount NUMBER
+);
+
+CREATE TABLE audit_log (
+    update_count NUMBER
+);
+
+INSERT INTO audit_log VALUES (0);
+INSERT INTO customer_orders VALUES (1, 'John', 2000);
+
+CREATE OR REPLACE TRIGGER trg_update_count
+AFTER UPDATE ON customer_orders
+FOR EACH ROW
+BEGIN
+    UPDATE audit_log SET update_count = update_count + 1;
+END;
+/
+
+UPDATE customer_orders SET amount = 2500 WHERE order_id = 1;
+UPDATE customer_orders SET amount = 2700 WHERE order_id = 1;
+SELECT * FROM audit_log;
+```
+### output
+<img width="715" height="201" alt="image" src="https://github.com/user-attachments/assets/27b36d95-fe9f-40ab-9b36-e7e2950ddd45" />
 
 ## 5. Write a trigger that checks a condition before allowing insertion into a table.
 **Steps:**
@@ -72,6 +177,26 @@ END;
 
 **Expected Output:**
 - If the inserted salary in the `employees` table is below the condition (e.g., salary < 3000), the insert operation is blocked, and an error message is raised, such as: `ERROR: Salary below minimum threshold.`
+
+### PL/SQL Query:
+```
+CREATE OR REPLACE TRIGGER trg_check_salary
+BEFORE INSERT ON employees
+FOR EACH ROW
+BEGIN
+    IF :NEW.designation = 'Intern' THEN
+        IF :NEW.emp_id < 3000 THEN
+            RAISE_APPLICATION_ERROR(-20002, 'ERROR: Salary below minimum threshold.');
+        END IF;
+    END IF;
+END;
+/
+
+INSERT INTO employees VALUES (3, 'Bob', 'Intern');
+```
+### output
+<img width="1074" height="227" alt="image" src="https://github.com/user-attachments/assets/4a346c82-edab-4c66-bdca-eec6b992cbc4" />
+
 
 ## RESULT
 Thus, the PL/SQL trigger programs were written and executed successfully.
